@@ -802,7 +802,11 @@
 <div class="mountain-glow"></div>
 <header>
 <!-- Логотип сайта -->
-<a class="logo-area" href="#home" onclick="switchPage('home')"><img alt="Логотип «Лавка отшельницы»" class="brand-logo" src="logo-dark.png"/><span class="logo-title">Лавка отшельницы</span></a>
+<a class="logo-area" href="#home" id="siteLogo">
+    <img alt="Логотип «Лавка отшельницы»"
+         class="brand-logo" src="logo-dark.png"/>
+    <span class="logo-title">Лавка отшельницы</span>
+</a>
 <button class="menu-toggle" onclick="toggleMobileMenu()">☰</button>
 <nav id="navMenu">
 <a class="active" href="#home" id="nav-home" onclick="switchPage('home'); closeMenu();">Главная</a>
@@ -1190,5 +1194,7 @@
             img.addEventListener('error', () => { img.style.display='none'; });
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="admin-addon.js"></script>
 </body>
 </html>
