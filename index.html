@@ -1,370 +1,1201 @@
+<!DOCTYPE html>
 
-(() => {
-  'use strict';
-
-  const SUPABASE_URL = 'https://yilqkywwmatebbejmhny.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_YheIRsETgK-gBxhgiE8HOA_KORyOMhN';
-
-  let db;
-  let reviewChannel;
-
-  const $ = id => document.getElementById(id);
-
-  function addReviewStyles() {
-    if ($('reviewsAddonStyles')) return;
-
-    const style = document.createElement('style');
-    style.id = 'reviewsAddonStyles';
-
-    style.textContent = `
-      .visitor-review-form {
-        max-width: 680px;
-        margin: 25px auto 35px;
-        padding: 25px;
-        background: rgba(32,45,35,.92);
-        border: 1px solid #6ab088;
-        border-radius: 18px;
-        color: #fefae0;
-      }
-
-      .visitor-review-form h3 {
-        color: #e9c46a;
-        margin-top: 0;
-      }
-
-      .visitor-review-field {
-        margin: 15px 0;
-      }
-
-      .visitor-review-field label {
-        display: block;
-        margin-bottom: 7px;
-      }
-
-      .visitor-review-field input,
-      .visitor-review-field textarea,
-      .visitor-review-field select {
-        box-sizing: border-box;
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #526b55;
-        border-radius: 9px;
-        background: #0d140f;
-        color: white;
-        font: inherit;
-      }
-
-      .visitor-review-field textarea {
-        min-height: 110px;
-        resize: vertical;
-      }
-
-      .visitor-review-submit {
-        border: 1px solid #6ab088;
-        border-radius: 10px;
-        padding: 12px 20px;
-        background: #294936;
-        color: white;
-        font: inherit;
-        cursor: pointer;
-        transition: .2s;
-      }
-
-      .visitor-review-submit:hover {
-        background: #426b4d;
-        transform: translateY(-1px);
-      }
-
-      .visitor-review-submit:disabled {
-        opacity: .6;
-        cursor: wait;
-      }
-
-      .visitor-review-status {
-        margin-top: 12px;
-        color: #c9d5bd;
-      }
-
-      .cloud-review-card {
-        animation: reviewAppear .35s ease;
-      }
-
-      .cloud-review-rating {
-        color: #e9c46a;
-        letter-spacing: 3px;
-        margin-bottom: 8px;
-      }
-
-      .cloud-review-date {
-        display: block;
-        margin-top: 12px;
-        color: #b5c4ad;
-        font-size: 12px;
-      }
-
-      @keyframes reviewAppear {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Лавка отшельницы — Магические кастомы и украшения ручной работы</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&amp;family=Playfair+Display:ital,wght@0,400;0,600;1,400&amp;family=Montserrat:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<style>
+        :root {
+            --bg-deep: #161a17;
+            --bg-card: rgba(22, 28, 23, 0.94);
+            --bg-glass: rgba(18, 24, 19, 0.96);
+            --accent-green: #24382c;
+            --accent-glow: #6ab088;
+            --accent-gold: #e9c46a;
+            --accent-light-gold: #f4f1de;
+            --text-main: #fefae0;
+            --text-muted: #b5c4ad;
+            --border-magic: rgba(106, 176, 136, 0.4);
+            --shadow-magic: 0 0 35px rgba(40, 60, 45, 0.6);
         }
-        to {
-          opacity: 1;
-          transform: translateY(0);
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            scroll-behavior: smooth;
+            -webkit-tap-highlight-color: transparent;
         }
-      }
 
-      @media(max-width: 600px) {
-        .visitor-review-form {
-          padding: 17px;
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
         }
-      }
-    `;
 
-    document.head.appendChild(style);
-  }
+        /* --- DARK HAUNTED FOREST BACKGROUND --- */
+        .forest-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -4;
+            background:
+                radial-gradient(ellipse at 50% 16%, rgba(170,180,157,.17), transparent 22%),
+                radial-gradient(ellipse at 50% 55%, rgba(46,67,49,.25), transparent 48%),
+                repeating-linear-gradient(87deg, transparent 0 7%, rgba(2,7,5,.82) 7.2% 8.2%, transparent 8.5% 15%),
+                repeating-linear-gradient(93deg, transparent 0 13%, rgba(5,12,8,.78) 13.2% 14.5%, transparent 14.8% 23%),
+                linear-gradient(180deg, #080d0b 0%, #142019 48%, #050807 100%);
+        }
 
-  function createReviewForm() {
-    const page = $('page-reviews');
-    if (!page || $('visitorReviewForm')) return;
+        .mountain-glow {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70vh;
+            z-index: -3;
+            pointer-events: none;
+            background:
+                radial-gradient(ellipse at 50% 85%, rgba(135,150,117,.13), transparent 55%),
+                linear-gradient(0deg, rgba(4,8,6,.45), transparent 70%);
+        }
 
-    const grid = page.querySelector('.reviews-grid');
-    if (!grid) {
-      console.error('Не найден .reviews-grid во вкладке отзывов.');
-      return;
-    }
+        .mountains-back {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 38vh;
+            z-index: -3;
+            pointer-events: none;
+            background:
+                linear-gradient(180deg, transparent 0%, rgba(4,9,6,.96) 100%),
+                repeating-linear-gradient(90deg, transparent 0 7%, rgba(5,12,8,.8) 7.2% 8%, transparent 8.2% 14%),
+                linear-gradient(180deg, #1c2a20, #0a100c);
+            clip-path: polygon(0 100%,0 35%,4% 35%,5% 5%,7% 35%,12% 22%,14% 0,16% 25%,22% 38%,25% 8%,27% 38%,34% 20%,37% 0,39% 27%,46% 40%,50% 10%,52% 38%,60% 20%,63% 0,65% 28%,72% 40%,76% 8%,78% 40%,86% 22%,89% 0,91% 32%,100% 38%,100% 100%);
+            opacity: 0.75;
+            animation: moveMountains 60s linear infinite alternate;
+        }
 
-    const wrapper = document.createElement('div');
+        .mountains-front {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 28vh;
+            z-index: -2;
+            pointer-events: none;
+            background:
+                repeating-linear-gradient(90deg, #050907 0 3%, transparent 3.2% 9%, #080e0a 9.2% 11%, transparent 11.2% 17%);
+            clip-path: polygon(0 100%,0 30%,3% 30%,5% 0,7% 30%,12% 15%,14% 0,16% 28%,22% 38%,25% 7%,27% 38%,34% 20%,37% 0,39% 30%,46% 42%,50% 12%,52% 40%,60% 20%,63% 0,65% 30%,72% 42%,76% 8%,78% 40%,86% 22%,89% 0,91% 32%,100% 35%,100% 100%);
+            opacity: 0.95;
+            animation: moveMountainsFront 40s linear infinite alternate;
+        }
 
-    wrapper.innerHTML = `
-      <form class="visitor-review-form" id="visitorReviewForm">
+        @keyframes moveMountains {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-15%); }
+        }
 
-        <h3>✦ Оставить свой отзыв</h3>
+        @keyframes moveMountainsFront {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-10%); }
+        }
 
-        <p>
-          Поделитесь впечатлениями о «Лавке отшельницы».
-          Ваш отзыв увидят другие посетители.
-        </p>
+        .star {
+            position: fixed;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -3;
+            animation: twinkle 4s infinite ease-in-out;
+        }
 
-        <div class="visitor-review-field">
-          <label for="visitorReviewName">Ваше имя</label>
-          <input
-            id="visitorReviewName"
-            type="text"
-            maxlength="60"
-            minlength="2"
-            placeholder="Как к вам обращаться?"
-            required
-          >
-        </div>
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.15; transform: scale(0.8); }
+            50% { opacity: 0.85; transform: scale(1.2); }
+        }
 
-        <div class="visitor-review-field">
-          <label for="visitorReviewRating">Оценка</label>
-          <select id="visitorReviewRating" required>
-            <option value="5">★★★★★ — Отлично</option>
-            <option value="4">★★★★☆ — Хорошо</option>
-            <option value="3">★★★☆☆ — Нормально</option>
-            <option value="2">★★☆☆☆ — Не очень</option>
-            <option value="1">★☆☆☆☆ — Плохо</option>
-          </select>
-        </div>
 
-        <div class="visitor-review-field">
-          <label for="visitorReviewMessage">Ваш отзыв</label>
-          <textarea
-            id="visitorReviewMessage"
-            minlength="5"
-            maxlength="1500"
-            placeholder="Напишите, что вам понравилось..."
-            required
-          ></textarea>
-        </div>
+        .price-extra{color:#d8c6a4;font-size:.86rem;line-height:1.7;margin:0 0 8px;font-family:'Montserrat',sans-serif}
+        .stock{font-size:.82rem;line-height:1.55;margin:0 0 14px;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.24)}
+        .in-stock{color:#b6cba9;border:1px solid rgba(130,165,115,.35)}
+        .out-stock{color:#d7a09a;border:1px solid rgba(160,75,68,.4)}
+        .product-img-wrap img{object-fit:contain;background:#0b100d;padding:8px}
+        .product-card{border-color:rgba(151,130,96,.32)}
+        .hero{background:linear-gradient(135deg,rgba(8,13,10,.94),rgba(21,29,22,.88)),radial-gradient(ellipse at 50% 0%,rgba(126,143,104,.16),transparent 65%)}
+        .logo-title{color:#d5c7ad;text-shadow:0 2px 12px #000}
+        .forest-bg:after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 25%,rgba(0,0,0,.58) 100%);pointer-events:none}
+        .mountain-glow{filter:blur(8px)}
+        @media(max-width:600px){.product-img-wrap{height:245px}.price-extra{font-size:.8rem}}
 
-        <button
-          class="visitor-review-submit"
-          id="visitorReviewSubmit"
-          type="submit"
-        >
-          Опубликовать отзыв
-        </button>
+        /* --- HEADER & NAVIGATION --- */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(18, 24, 20, 0.96);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid var(--border-magic);
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.9rem 4%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+        }
 
-        <p
-          class="visitor-review-status"
-          id="visitorReviewStatus"
-          role="status"
-          aria-live="polite"
-        ></p>
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-main);
+            min-width: 0;
+        }
 
-      </form>
-    `;
+        .logo-badge {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, #172019 0%, #050806 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #405344;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--accent-gold);
+            box-shadow: 0 0 12px rgba(0,0,0,.9);
+        }
 
-    page.insertBefore(wrapper.firstElementChild, grid);
+        .logo-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.15rem;
+            letter-spacing: 1px;
+            color: var(--accent-light-gold);
+            text-shadow: 0 0 10px rgba(212, 163, 115, 0.4);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-    $('visitorReviewForm').addEventListener('submit', submitReview);
-  }
+        nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
 
-  function createReviewCard(review) {
-    const card = document.createElement('div');
-    card.className = 'review-card cloud-review-card';
+        nav a {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.92rem;
+            transition: color 0.3s, text-shadow 0.3s;
+        }
 
-    const rating = document.createElement('div');
-    rating.className = 'cloud-review-rating';
-    rating.textContent =
-      '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+        nav a:hover, nav a.active {
+            color: var(--accent-glow);
+            text-shadow: 0 0 12px rgba(106, 176, 136, 0.8);
+        }
 
-    const message = document.createElement('p');
-    message.textContent = '«' + review.message + '»';
+        .tg-btn-header {
+            background: linear-gradient(135deg, #1d3326, #2b4736);
+            color: var(--text-main);
+            padding: 8px 18px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid var(--accent-glow);
+            box-shadow: 0 0 12px rgba(45, 75, 55, 0.6);
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
 
-    const author = document.createElement('div');
-    author.className = 'review-author';
-    author.textContent = '— ' + review.name;
+        .tg-btn-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(106, 176, 136, 0.9);
+            background: linear-gradient(135deg, #2b4736, #385e47);
+        }
 
-    const date = document.createElement('span');
-    date.className = 'cloud-review-date';
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--accent-glow);
+            font-size: 1.6rem;
+        }
 
-    const parsedDate = new Date(review.created_at);
+        /* --- MAIN CONTAINER & PAGES --- */
+        .container {
+            max-width: 1200px;
+            margin: 125px auto 80px;
+            padding: 0 20px;
+            min-height: calc(100vh - 220px);
+        }
 
-    date.textContent = Number.isNaN(parsedDate.getTime())
-      ? ''
-      : parsedDate.toLocaleDateString('ru-RU');
+        .page {
+            display: none;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
 
-    card.append(rating, message, author, date);
+        .page.active {
+            display: block;
+        }
 
-    return card;
-  }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-  async function loadReviews() {
-    const grid = $('page-reviews')?.querySelector('.reviews-grid');
-    if (!grid) return;
+        /* --- HERO SECTION --- */
+        .hero {
+            text-align: center;
+            padding: 65px 20px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-magic);
+            border-radius: 26px;
+            backdrop-filter: blur(18px);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), var(--shadow-magic);
+        }
 
-    const { data, error } = await db
-      .from('reviews')
-      .select('id, name, rating, message, created_at')
-      .order('created_at', { ascending: false });
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent-gold), var(--accent-glow), transparent);
+        }
 
-    if (error) {
-      console.error('Ошибка загрузки отзывов:', error);
-      const status = $('visitorReviewStatus');
-      if (status) status.textContent = 'Не удалось загрузить новые отзывы.';
-      return;
-    }
+        .hero-floaters { position:absolute; inset:0; pointer-events:none; }
+        .hero-floaters img { position:absolute; object-fit:contain; opacity:.19; filter:drop-shadow(0 8px 12px #000); }
+        .hero-floaters .floater-moth { width:clamp(76px,12vw,138px); left:3%; top:8%; transform:rotate(-18deg); }
+        .hero-floaters .floater-cat { width:clamp(92px,14vw,160px); right:2%; bottom:-8%; transform:rotate(8deg); opacity:.14; }
+        .hero-floaters .floater-apple { width:clamp(58px,8vw,94px); left:13%; bottom:4%; transform:rotate(-12deg); opacity:.16; }
+        .hero h1, .hero p, .hero > div:not(.hero-floaters) { position:relative; z-index:1; }
+        @media(max-width:600px) { .hero-floaters .floater-moth { left:-2%; top:2%; width:70px; opacity:.13; } .hero-floaters .floater-cat { right:-5%; bottom:-5%; width:95px; } .hero-floaters .floater-apple { left:2%; bottom:0; width:52px; } }
 
-    // Убираем только динамические отзывы.
-    // Три старых отзыва остаются на месте.
-    grid.querySelectorAll('.cloud-review-card').forEach(card => {
-      card.remove();
-    });
+        .hero h1 {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(2.2rem, 5vw, 3.4rem);
+            color: var(--accent-light-gold);
+            margin-bottom: 18px;
+            text-shadow: 0 0 25px rgba(212, 163, 115, 0.5);
+        }
 
-    data.forEach(review => {
-      grid.appendChild(createReviewCard(review));
-    });
-  }
+        .hero p {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.1rem, 2.3vw, 1.35rem);
+            color: var(--text-muted);
+            max-width: 750px;
+            margin: 0 auto 30px;
+            line-height: 1.7;
+        }
 
-  async function submitReview(event) {
-    event.preventDefault();
+        .btn-magic {
+            display: inline-block;
+            background: linear-gradient(135deg, #1d3326, #2b4736);
+            color: var(--text-main);
+            padding: 13px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            border: 1px solid var(--accent-glow);
+            box-shadow: 0 0 18px rgba(45, 75, 55, 0.6);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 0.92rem;
+            text-align: center;
+        }
 
-    const name = $('visitorReviewName').value.trim();
-    const rating = Number($('visitorReviewRating').value);
-    const message = $('visitorReviewMessage').value.trim();
+        .btn-magic:hover {
+            background: linear-gradient(135deg, #2b4736, #385e47);
+            box-shadow: 0 0 28px rgba(106, 176, 136, 0.9);
+            transform: scale(1.04);
+        }
 
-    const button = $('visitorReviewSubmit');
-    const status = $('visitorReviewStatus');
+        /* --- FEATURES GRID --- */
+        .features-grid {
+            margin-top: 50px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+        }
 
-    if (name.length < 2 || name.length > 60) {
-      status.textContent = 'Имя должно содержать от 2 до 60 символов.';
-      return;
-    }
+        .feature-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-magic);
+            padding: 30px 20px;
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(14px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
 
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-      status.textContent = 'Выбери оценку от 1 до 5.';
-      return;
-    }
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-glow);
+        }
 
-    if (message.length < 5 || message.length > 1500) {
-      status.textContent = 'Отзыв должен содержать от 5 до 1500 символов.';
-      return;
-    }
+        .feature-icon {
+            height: 104px;
+            margin: 0 auto 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .feature-icon img {
+            width: 104px;
+            height: 104px;
+            object-fit: contain;
+            filter: drop-shadow(0 5px 12px rgba(0,0,0,.65));
+        }
+        /* Лесные находки — свободная композиция вместо ровного ряда */
+        .forest-artifacts {
+            position: relative;
+            isolation: isolate;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: 76px 76px;
+            align-items: center;
+            max-width: 900px;
+            min-height: 190px;
+            margin: 34px auto 12px;
+            padding: 8px 3%;
+            pointer-events: none;
+        }
+        .forest-artifacts::before {
+            content: 'ЛЕСНЫЕ НАХОДКИ';
+            position: absolute;
+            z-index: -1;
+            left: 50%; top: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(220,210,183,.12);
+            font: 600 clamp(1rem, 3vw, 1.55rem) 'Cinzel', serif;
+            letter-spacing: .32em;
+            white-space: nowrap;
+        }
+        .forest-artifacts img {
+            width: 100%; height: 100%; max-width: 112px; max-height: 112px;
+            object-fit: contain;
+            filter: drop-shadow(0 9px 13px rgba(0,0,0,.8));
+            opacity: .88;
+            transition: transform .3s ease, opacity .3s ease, filter .3s ease;
+            justify-self: center;
+        }
+        .forest-artifacts img:nth-child(1) { grid-column: 2 / span 2; grid-row: 1 / span 2; transform: rotate(-17deg) scale(1.12); }
+        .forest-artifacts img:nth-child(2) { grid-column: 5 / span 2; grid-row: 1 / span 2; transform: rotate(8deg) scale(.95); }
+        .forest-artifacts img:nth-child(3) { grid-column: 8 / span 2; grid-row: 1 / span 2; transform: rotate(-9deg) scale(1.04); }
+        .forest-artifacts img:nth-child(4) { grid-column: 11 / span 2; grid-row: 1 / span 2; transform: rotate(12deg) scale(1.13); }
+        .forest-artifacts img:nth-child(5) { grid-column: 6 / span 2; grid-row: 1 / span 2; width: 65%; opacity: .5; transform: translateY(28px) rotate(-12deg); }
+        .forest-artifacts img:hover { opacity: 1; filter: drop-shadow(0 0 15px rgba(183,165,119,.4)); }
+        .forest-artifacts img:nth-child(1):hover { transform: rotate(-10deg) scale(1.2); }
+        .forest-artifacts img:nth-child(2):hover { transform: rotate(2deg) scale(1.05); }
+        .forest-artifacts img:nth-child(3):hover { transform: rotate(-3deg) scale(1.14); }
+        .forest-artifacts img:nth-child(4):hover { transform: rotate(6deg) scale(1.2); }
+        @media(max-width:600px) {
+            .forest-artifacts { min-height: 135px; grid-template-rows: 54px 54px; padding: 0; margin: 22px auto 4px; }
+            .forest-artifacts img { max-width: 76px; max-height: 76px; }
+            .forest-artifacts img:nth-child(5) { display: none; }
+            .forest-artifacts::before { letter-spacing: .16em; font-size: .85rem; }
+        }
 
-    button.disabled = true;
-    button.textContent = 'Отправляем...';
-    status.textContent = '';
+        .feature-card h3 {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-light-gold);
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
 
-    try {
-      const { error } = await db
-        .from('reviews')
-        .insert({
-          name,
-          rating,
-          message
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        /* --- CATALOG GRID --- */
+        .section-title {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(1.9rem, 4vw, 2.5rem);
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--accent-light-gold);
+            text-shadow: 0 0 20px rgba(212, 163, 115, 0.35);
+        }
+
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 35px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-magic);
+            color: var(--text-muted);
+            padding: 9px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 500;
+            font-size: 0.9rem;
+            backdrop-filter: blur(8px);
+        }
+
+        .filter-btn.active, .filter-btn:hover {
+            background: var(--accent-green);
+            color: white;
+            border-color: var(--accent-glow);
+            box-shadow: 0 0 15px rgba(106, 176, 136, 0.5);
+        }
+
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 28px;
+        }
+
+        .product-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-magic);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(106, 176, 136, 0.3);
+            border-color: var(--accent-glow);
+        }
+
+        .product-img-wrap {
+            width: 100%;
+            height: 270px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .product-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .product-card:hover .product-img-wrap img {
+            transform: scale(1.06);
+        }
+
+        .product-info {
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .product-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: var(--accent-light-gold);
+        }
+
+        .product-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            flex-grow: 1;
+            line-height: 1.6;
+        }
+
+        .product-details-list {
+            font-size: 0.84rem;
+            color: var(--text-muted);
+            margin-bottom: 18px;
+            list-style-type: disc;
+            padding-left: 16px;
+            line-height: 1.5;
+        }
+
+        .product-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(106, 176, 136, 0.2);
+            padding-top: 15px;
+        }
+
+        .product-price {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .btn-order-item {
+            background: transparent;
+            border: 1px solid var(--accent-glow);
+            color: var(--accent-glow);
+            padding: 7px 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .btn-order-item:hover {
+            background: var(--accent-glow);
+            color: var(--bg-deep);
+            box-shadow: 0 0 12px rgba(106, 176, 136, 0.6);
+        }
+
+        /* --- ORDER PAGE / FORM --- */
+        .order-container {
+            max-width: 720px;
+            margin: 0 auto;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-magic);
+            padding: 40px 25px;
+            border-radius: 24px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7), var(--shadow-magic);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-family: 'Cinzel', serif;
+            color: var(--accent-light-gold);
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 13px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-magic);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-glow);
+            box-shadow: 0 0 15px rgba(106, 176, 136, 0.35);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .result-preview {
+            background: rgba(13, 18, 16, 0.92);
+            border: 1px dashed var(--border-magic);
+            padding: 18px;
+            border-radius: 14px;
+            margin-top: 24px;
+            font-family: monospace;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            white-space: pre-wrap;
+            display: none;
+            word-break: break-all;
+        }
+
+        /* --- REVIEWS & PACKAGING SECTIONS --- */
+        .reviews-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .review-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-magic);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(14px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+
+        .review-author {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            margin-top: 14px;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        .about-content, .faq-content {
+            max-width: 820px;
+            margin: 0 auto;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-magic);
+            padding: 45px 30px;
+            border-radius: 24px;
+            backdrop-filter: blur(16px);
+            line-height: 1.85;
+            box-shadow: 0 18px 45px rgba(0,0,0,0.7);
+        }
+
+        .about-content p, .faq-content p {
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            font-size: 0.96rem;
+        }
+
+        .about-content h3, .faq-content h3 {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-light-gold);
+            margin: 32px 0 14px;
+            font-size: 1.35rem;
+        }
+
+        .faq-item {
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-magic);
+            padding-bottom: 18px;
+        }
+
+        .faq-question {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Cinzel', serif;
+            color: var(--text-main);
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: color 0.3s;
+        }
+        .faq-question img {
+            width: 34px;
+            height: 34px;
+            object-fit: contain;
+            flex: 0 0 34px;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,.65));
+        }
+
+        .faq-question:hover {
+            color: var(--accent-glow);
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            border-top: 1px solid var(--border-magic);
+            margin-top: 90px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            background: rgba(18, 24, 20, 0.96);
+        }
+
+        footer a {
+            color: var(--accent-glow);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        /* --- FULL MOBILE OPTIMIZATION --- */
+        @media (max-width: 900px) {
+            header {
+                padding: 0.8rem 4%;
+            }
+            .menu-toggle {
+                display: block;
+                z-index: 1001;
+            }
+            nav {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 82%;
+                max-width: 320px;
+                height: 100vh;
+                background: rgba(15, 22, 18, 0.99);
+                backdrop-filter: blur(20px);
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                gap: 22px;
+                transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+                border-left: 1px solid var(--border-magic);
+                box-shadow: -15px 0 35px rgba(0,0,0,0.85);
+                z-index: 1000;
+            }
+            nav.open {
+                right: 0;
+            }
+            nav a {
+                font-size: 1.12rem;
+            }
+            .tg-btn-header {
+                display: none;
+            }
+            .container {
+                margin-top: 100px;
+                padding: 0 15px;
+            }
+            .hero {
+                padding: 40px 18px;
+            }
+            .order-container, .about-content, .faq-content {
+                padding: 28px 18px;
+            }
+            .catalog-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+            .contact-line{font-size:.82rem;color:var(--text-muted);margin:0 0 12px}.contact-line a{color:#c4b28d;text-decoration:none;font-weight:600}\n    
+        .brand-logo{width:34px;height:34px;object-fit:contain;border-radius:50%;padding:5px;background:radial-gradient(circle,#27352a,#080d09);border:1px solid #596b51;filter:brightness(.88);box-shadow:0 3px 16px #000}
+        .logo-area{gap: 6px;}
+        .product-img-wrap img{width:100%;height:100%;object-fit:contain;padding:8px;background:rgba(0,0,0,.12)}
+        .price-extra{color:#d8c6a4;font-size:.86rem;line-height:1.7;margin:8px 0 4px}
+        .stock{font-size:.82rem;line-height:1.55;margin:4px 0 10px;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.24)}
+        .in-stock{color:#b6cba9;border:1px solid rgba(130,165,115,.35)}
+        .out-stock{color:#d7a09a;border:1px solid rgba(160,75,68,.4)}
+        .contact-line{font-size:.82rem;color:var(--text-muted);margin:0 0 12px}
+        .contact-line a{color:#c4b28d;text-decoration:none;font-weight:600}
+        @media(max-width:600px){.brand-logo{width:44px;height:44px}.price-extra{font-size:.8rem}}
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+        }
+</style>
+</head>
+<body>
+<!-- LAYERED MOUNTAIN PEAKS BACKGROUND -->
+<div class="forest-bg"></div>
+<div class="mountain-glow"></div>
+<header>
+<!-- Логотип сайта -->
+<a class="logo-area" href="#home" id="siteLogo">
+    <img alt="Логотип «Лавка отшельницы»"
+         class="brand-logo" src="logo-dark.png"/>
+    <span class="logo-title">Лавка отшельницы</span>
+</a>
+<button class="menu-toggle" onclick="toggleMobileMenu()">☰</button>
+<nav id="navMenu">
+<a class="active" href="#home" id="nav-home" onclick="switchPage('home'); closeMenu();">Главная</a>
+<a href="#catalog" id="nav-catalog" onclick="switchPage('catalog'); closeMenu();">Каталог</a>
+<a href="#reviews" id="nav-reviews" onclick="switchPage('reviews'); closeMenu();">Отзывы</a>
+<a href="#behind" id="nav-behind" onclick="switchPage('behind'); closeMenu();">За кулисами</a>
+<a href="#order" id="nav-order" onclick="switchPage('order'); closeMenu();">Заказать кастом</a>
+<a href="#about" id="nav-about" onclick="switchPage('about'); closeMenu();">О лавке</a>
+<a href="#faq" id="nav-faq" onclick="switchPage('faq'); closeMenu();">FAQ</a>
+</nav>
+<a class="tg-btn-header" href="https://t.me/Viloni_mi" target="_blank">Telegram Канал</a>
+</header>
+<div class="container">
+<!-- HOME PAGE -->
+<section class="page active" id="page-home">
+<div class="hero">
+<!-- Декоративные изображения главного экрана: мотылёк, кот и яблоко -->
+<div class="hero-floaters" aria-hidden="true">
+<img class="floater-moth" src="moth.png" alt="">
+<img class="floater-cat" src="cat.png" alt="">
+<img class="floater-apple" src="apple.png" alt="">
+</div>
+<h1>Магия ручной работы в ночном лесу</h1>
+<p>Добро пожаловать в «Лавку отшельницы»! Здесь рождаются уникальные артефакты, кастомные украшения и поделки, сотканные из сказок, тумана и вдохновения.</p>
+<div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+<a class="btn-magic" href="#catalog" onclick="switchPage('catalog')">Смотреть каталог</a>
+<a class="btn-magic" href="https://t.me/Viloni_mi" style="background: linear-gradient(135deg, #2b5876, #4e4376);" target="_blank">Telegram @Viloni_mi</a>
+</div>
+</div>
+<div class="features-grid">
+<div class="feature-card">
+<div class="feature-icon"><img src="moth.png" alt="Ночная бабочка"></div>
+<h3>Индивидуальный кастом</h3>
+<p>Создадим изделие по вашему уникальному эскизу или идее. Воплотим любую фантазию в реальность с детальной проработкой.</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><img src="cat.png" alt="Чёрный кот"></div>
+<h3>Сказочная атмосфера</h3>
+<p>Каждая вещь хранит частичку волшебного леса, тайны и уюта ночных посиделок у костра в духе Страны чудес.</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><img src="apple.png" alt="Волшебное яблоко"></div>
+<h3>Магическая упаковка</h3>
+<p>Каждый заказ упаковывается в крафтовую подарочную бумагу с сургучной печатью, готовый стать идеальным подарком.</p>
+</div>
+</div>
+<!-- Декор ночного леса: мотылёк, кот, яблоко и два черепа -->
+<div class="forest-artifacts" aria-label="Символы ночного леса">
+<img src="moth.png" alt="Ночная бабочка" loading="lazy">
+<img src="cat.png" alt="Чёрный кот" loading="lazy">
+<img src="apple.png" alt="Волшебное яблоко" loading="lazy">
+<img src="antler.png" alt="Олений череп с рогами" loading="lazy">
+<img src="skull.png" alt="Лесной череп" loading="lazy">
+</div>
+</section>
+<!-- Каталог: каждому товару соответствует своё фото из папки img -->
+<!-- CATALOG PAGE -->
+<section class="page" id="page-catalog">
+<h2 class="section-title">Каталог волшебных изделий</h2>
+<div class="filters">
+<button class="filter-btn active" onclick="filterCatalog('all', this)">Весь каталог</button>
+<button class="filter-btn" onclick="filterCatalog('accessories', this)">Аксессуары</button>
+<button class="filter-btn" onclick="filterCatalog('decor', this)">Декор</button>
+</div>
+<div class="catalog-grid" id="catalog-grid">
+<!-- Item 1 -->
+<div class="product-card" data-category="accessories">
+<div class="product-img-wrap">
+<img src="keychain-cat.jpg" alt="Брелок с мемным-котиком" loading="lazy" decoding="async"/>
+</div>
+<div class="product-info">
+<h3 class="product-title">Брелок с мемным-котиком</h3>
+<p class="product-desc">Миниатюрная ручная вышивка в сказочном оформлении. Прочный стальной карабин и тёплая эстетика.</p>
+<ul class="product-details-list">
+<li>Ручная счетная вышивка</li>
+<li>Надежное крепление с кольцом</li>
+<li>Возможность выбрать другой дизайн</li>
+</ul>
+
+
+
+
+<div class="price-extra">☆ 145.69 руб　☆ 2.50 евро</div><div class="stock out-stock"><s>В наличии!!!</s><br/>На данный момент не в наличии</div><div class="contact-line">Писать: <a href="https://t.me/Viloni_mi" target="_blank">@Viloni_mi</a></div><div class="product-footer">
+<span class="product-price">5.50 Бун</span>
+<a class="btn-order-item" href="#order" onclick="selectForOrder('Брелок с мемным-котиком')">Написать мастеру</a>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="product-card" data-category="accessories">
+<div class="product-img-wrap">
+<img src="amber-earrings.jpg" alt="Серёжки с имитацией янтаря" loading="lazy" decoding="async"/>
+</div>
+<div class="product-info">
+<h3 class="product-title">Серёжки с имитацией янтаря</h3>
+<p class="product-desc">Необычные подвески из натурального янтаря и минералов, наполненные духом лесных дебрей.</p>
+<ul class="product-details-list">
+<li>Натуральный янтарь и крошка</li>
+<li>Гипоаллергенная фурнитура</li>
+<li>Лёгкие и изящные в носке</li>
+</ul>
+<div class="price-extra">☆ 145.69 руб　☆ 5.00 евро</div><div class="stock out-stock"><s>В наличии!!!</s><br/>На данный момент не в наличии</div><div class="contact-line">Писать: <a href="https://t.me/Viloni_mi" target="_blank">@Viloni_mi</a></div><div class="product-footer">
+<span class="product-price">10.00 Бун</span>
+<a class="btn-order-item" href="#order" onclick="selectForOrder('Серёжки с имитацией янтаря')">Написать мастеру</a>
+</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="product-card" data-category="decor">
+<div class="product-img-wrap">
+<img src="jaw-dish.jpg" alt="Тарелочка для украшений «челюсть»" loading="lazy" decoding="async"/>
+</div>
+<div class="product-info">
+<h3 class="product-title">Тарелочка для украшений «челюсть»</h3>
+<p class="product-desc">Арт-объект и удобная подставка ручной работы из полимерной глины для мелочей и украшений.</p>
+<ul class="product-details-list">
+<li>Скульптурная лепка из глины</li>
+<li>Прочное защитное покрытие лаком</li>
+<li>Уникальная детализация</li>
+</ul>
+<div class="price-extra">☆ 750.00 руб　☆ 15.00 евро</div><div class="stock in-stock">В наличии!!!</div><div class="contact-line">Писать: <a href="https://t.me/Viloni_mi" target="_blank">@Viloni_mi</a></div><div class="product-footer">
+<span class="product-price">35.00 Бун</span>
+<a class="btn-order-item" href="#order" onclick="selectForOrder('Тарелочка для украшений «челюсть»')">Написать мастеру</a>
+</div>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="product-card" data-category="accessories">
+<div class="product-img-wrap">
+<img src="strawberry-necklace.jpg" alt="Ожерелье с клубникой" loading="lazy" decoding="async"/>
+</div>
+<div class="product-info">
+<h3 class="product-title">Ожерелье с клубникой</h3>
+<p class="product-desc">Тонкая цепочка с бусинами из натуральных камней и детальной миниатюрной клубникой.</p>
+<ul class="product-details-list">
+<li>Миниатюрная ручная роспись</li>
+<li>Камни натурального происхождения</li>
+<li>Регулируемая длина цепи</li>
+</ul>
+<div class="price-extra">☆ 650.00 руб　☆ 15.00 евро</div><div class="stock in-stock">В наличии!!!</div><div class="contact-line">Писать: <a href="https://t.me/Viloni_mi" target="_blank">@Viloni_mi</a></div><div class="product-footer">
+<span class="product-price">30.00 Бун</span>
+<a class="btn-order-item" href="#order" onclick="selectForOrder('Ожерелье с клубникой')">Написать мастеру</a>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- REVIEWS PAGE -->
+<section class="page" id="page-reviews">
+<h2 class="section-title">Отзывы путников</h2>
+<p style="text-align: center; color: var(--text-muted); max-width: 650px; margin: 0 auto 30px; line-height: 1.6;">Слова тепла и благодарности от тех, кто уже поселил частичку нашего сказочного леса у себя дома.</p>
+<div class="reviews-grid">
+<div class="review-card">
+<p style="color: var(--text-muted); line-height: 1.7; font-style: italic;">«Заказывала брелок с вышивкой, это невероятная детализация! Упаковка вообще отдельный вид искусства с сургучом, распаковывать было одно удовольствие. Спасибо огромное!»</p>
+<div class="review-author">— Анастасия, Минск</div>
+</div>
+<div class="review-card">
+<p style="color: var(--text-muted); line-height: 1.7; font-style: italic;">«Серьги превзошли все ожидания! Очень легкие, необычные, а главное чувствуется душа и ручной труд. Мастер учла все пожелания по заказу.»</p>
+<div class="review-author">— Екатерина, Брест</div>
+</div>
+<div class="review-card">
+<p style="color: var(--text-muted); line-height: 1.7; font-style: italic;">«Подставка-челюсть теперь украшает мой рабочий стол. Все друзья в восторге от такого необычного и атмосферного декора. Обязательно вернусь за новыми кастомами!»</p>
+<div class="review-author">— Алексей, Гродно</div>
+</div>
+</div>
+</section>
+<!-- BEHIND THE SCENES PAGE -->
+<section class="page" id="page-behind">
+<h2 class="section-title">За кулисами мастерской</h2>
+<div class="about-content">
+<p>Как рождается магия? Каждый артефакт в «Лавке отшельницы» проходит долгий путь от идеи в блокноте до готового шедевра.</p>
+<h3>1. Источники вдохновения</h3>
+<p>Густые туманные леса, старинные сказки, мифы, эстетика ночных костров и лесные находки питают каждую деталь будущей работы.</p>
+<h3>2. Материалы с характером</h3>
+<p>Мы используем только качественную полимерную глину, натуральные камни, янтарь, прочные нити для вышивки и гипоаллергенную фурнитуру, которая служит годами.</p>
+<h3>3. Ручная лепка и вышивка</h3>
+<p>Никакого потокового производства. Каждая линия вышивается крестиком или лепится вручную стеком с ювелирной точностью и любовью к ремеслу.</p>
+</div>
+</section>
+<!-- ORDER PAGE -->
+<section class="page" id="page-order">
+<h2 class="section-title">Заказ кастомного изделия</h2>
+<div class="order-container">
+<p style="text-align: center; color: var(--text-muted); margin-bottom: 25px; line-height: 1.6;">Заполните форму ниже, чтобы составить заявку, и отправьте её напрямую мастеру в Telegram <a href="https://t.me/Viloni_mi" style="color: var(--accent-glow); font-weight: 600;" target="_blank">@Viloni_mi</a>.</p>
+<form id="customOrderForm" onsubmit="generateOrderText(event)">
+<div class="form-group">
+<label for="clientName">Ваше имя / ник в Telegram</label>
+<input class="form-control" id="clientName" placeholder="@username или имя" required="" type="text"/>
+</div>
+<div class="form-group">
+<label for="itemChoice">Что именно вы хотите заказать?</label>
+<input class="form-control" id="itemChoice" placeholder="Например: Брелок с котиком или свой вариант" required="" type="text"/>
+</div>
+<div class="form-group">
+<label for="itemDetails">Детали, пожелания, цвета и референсы</label>
+<textarea class="form-control" id="itemDetails" placeholder="Опишите вашу идею, желаемые материалы, размеры или приложите ссылки на фото..." required=""></textarea>
+</div>
+<button class="btn-magic" style="width: 100%; text-align: center; border: none; cursor: pointer; margin-top: 10px;" type="submit">Сформировать заявку</button>
+</form>
+<div class="result-preview" id="orderResultBox"></div>
+<div id="sendActionBox" style="margin-top: 20px; display: none; text-align: center;">
+<button class="btn-magic" onclick="copyOrderText()" style="background: #2b5876; padding: 12px 22px; font-size: 0.9rem; margin-right: 10px; margin-bottom: 10px; border: none; cursor: pointer;" type="button">Скопировать заявку</button>
+<a class="btn-magic" href="https://t.me/Viloni_mi" id="tgSendLink" style="padding: 12px 22px; font-size: 0.9rem; text-decoration: none; display: inline-block;" target="_blank">Написать в Telegram (@Viloni_mi)</a>
+</div>
+</div>
+</section>
+<!-- ABOUT PAGE -->
+<section class="page" id="page-about">
+<h2 class="section-title">О Лавке Отшельницы</h2>
+<div class="about-content">
+<p>Приветствую путника! «Лавка отшельницы» — это уютный уголок ручной работы, где реальность переплетается с фантазией, а простые материалы превращаются в магические артефакты.</p>
+<h3>Философия мастерской</h3>
+<p>Каждое изделие создается вручную с особым вниманием к деталям. Здесь нет штамповки — только уникальный дизайн, вдохновленный сказочными лесами, мифами, эстетикой ночи и теплотой ручного труда.</p>
+<h3>Как создаются кастомы</h3>
+<p>Вы можете выбрать готовое изделие из каталога или предложить свою идею. Мы обсудим все детали в Telegram <a href="https://t.me/Viloni_mi" style="color: var(--accent-glow); font-weight: 600;" target="_blank">@Viloni_mi</a>, подберем палитру, материалы и воплотим ваш задуманный образ в жизнь.</p>
+<h3>Сроки и гарантии</h3>
+<p>Изготовление кастомных заказов занимает от 3 до 10 дней в зависимости от сложности работы. Все изделия упаковываются в крафтовую подарочную упаковку с сургучной печатью.</p>
+</div>
+</section>
+<!-- FAQ PAGE -->
+<section class="page" id="page-faq">
+<h2 class="section-title">Часто задаваемые вопросы</h2>
+<div class="faq-content">
+<div class="faq-item">
+<div class="faq-question"><img src="moth.png" alt="" aria-hidden="true">Как сделать заказ кастома?</div>
+<p>Перейдите в раздел «Заказать кастом», заполните форму или сразу напишите мастеру в Telegram <a href="https://t.me/Viloni_mi" style="color: var(--accent-glow); font-weight: 600;" target="_blank">@Viloni_mi</a> с описанием вашей идеи и референсами.</p>
+</div>
+<div class="faq-item">
+<div class="faq-question"><img src="cat.png" alt="" aria-hidden="true">Сколько времени занимает создание?</div>
+<p>Сроки зависят от сложности изделия (в среднем от 3 до 10 дней). Точное время обсуждается индивидуально при подтверждении заказа.</p>
+</div>
+<div class="faq-item">
+<div class="faq-question"><img src="skull.png" alt="" aria-hidden="true">Как осуществляется доставка?</div>
+<p>Способы и условия доставки оговариваются индивидуально в личных сообщениях Telegram при оформлении заказа.</p>
+</div>
+<div class="faq-item">
+<div class="faq-question"><img src="apple.png" alt="" aria-hidden="true">Можно ли внести изменения в готовый дизайн из каталога?</div>
+<p>Конечно! Почти любое изделие можно модифицировать по вашему вкусу: изменить цвет, форму подвески или добавить индивидуальные элементы.</p>
+</div>
+</div>
+</section>
+</div>
+<footer>
+<p>© 2026 Лавка отшельницы. Все права защищены.<br/>Канал мастера: <a href="https://t.me/Viloni_mi" target="_blank">@nalirie</a> | Заказы: <a href="https://t.me/Viloni_mi" target="_blank">@Viloni_mi</a></p>
+</footer>
+<script>
+        // Generate subtle twinkling stars
+        for (let s = 0; s < 25; s++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + 'vw';
+            star.style.top = Math.random() * 50 + 'vh';
+            const size = Math.random() * 2 + 1;
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+            star.style.animationDuration = (3 + Math.random() * 4) + 's';
+            star.style.animationDelay = (Math.random() * 3) + 's';
+            document.body.appendChild(star);
+        }
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const nav = document.getElementById('navMenu');
+            nav.classList.toggle('open');
+        }
+
+        function closeMenu() {
+            const nav = document.getElementById('navMenu');
+            nav.classList.remove('open');
+        }
+
+        // Page Router & URL hash support
+        function switchPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+            
+            const target = document.getElementById('page-' + pageId);
+            if (target) {
+                target.classList.add('active');
+            }
+            const navLink = document.getElementById('nav-' + pageId);
+            if (navLink) {
+                navLink.classList.add('active');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            try {
+                history.pushState(null, null, '#' + pageId);
+            } catch (e) {}
+        }
+
+        // Handle initial hash and browser back/forward buttons
+        window.addEventListener('DOMContentLoaded', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash && document.getElementById('page-' + hash)) {
+                switchPage(hash);
+            }
         });
 
-      if (error) throw error;
+        window.addEventListener('popstate', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash && document.getElementById('page-' + hash)) {
+                switchPage(hash);
+            } else {
+                switchPage('home');
+            }
+        });
 
-      $('visitorReviewForm').reset();
+        // Catalog Filter
+        function filterCategory(category, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
 
-      status.textContent = 'Спасибо! Ваш отзыв опубликован.';
-
-      await loadReviews();
-
-    } catch (error) {
-      console.error('Ошибка отправки отзыва:', error);
-      status.textContent = 'Не удалось отправить отзыв: ' + error.message;
-
-    } finally {
-      button.disabled = false;
-      button.textContent = 'Опубликовать отзыв';
-    }
-  }
-
-  async function init() {
-    const page = $('page-reviews');
-
-    if (!page) {
-      console.error('Не найдена вкладка #page-reviews.');
-      return;
-    }
-
-    if (!window.supabase) {
-      console.error('Библиотека Supabase не загружена.');
-      return;
-    }
-
-    addReviewStyles();
-    createReviewForm();
-
-    db = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-          storageKey: 'lavka-public-reviews'
+            document.querySelectorAll('.product-card').forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
         }
-      }
-    );
 
-    await loadReviews();
+        function filterCatalog(category, btn) {
+            filterCategory(category, btn);
+        }
 
-    // Новые отзывы появляются у других посетителей автоматически.
-    reviewChannel = db
-      .channel('public-reviews-feed')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'reviews'
-        },
-        () => loadReviews()
-      )
-      .subscribe();
-  }
+        // Select item for order
+        function selectForOrder(itemName) {
+            switchPage('order');
+            document.getElementById('itemChoice').value = itemName;
+        }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+        // Generate Order Text with encoded line breaks for Telegram link
+        let lastOrderText = '';
+        function generateOrderText(e) {
+            e.preventDefault();
+            const name = document.getElementById('clientName').value;
+            const item = document.getElementById('itemChoice').value;
+            const details = document.getElementById('itemDetails').value;
 
-})();
+            lastOrderText = `Заказ в Лавку Отшельницы\nЗаказчик: ${name}\nИзделие: ${item}\nПожелания: ${details}\nСвязь: ${name}`;
+            
+            const box = document.getElementById('orderResultBox');
+            box.style.display = 'block';
+            box.textContent = lastOrderText;
+            document.getElementById('sendActionBox').style.display = 'block';
+
+            // Update Telegram direct share link with text
+            const tgText = encodeURIComponent(`Заказ в Лавку Отшельницы\nЗаказчик: ${name}\nИзделие: ${item}\nПожелания: ${details}`);
+            document.getElementById('tgSendLink').href = `https://t.me/Viloni_mi?text=${tgText}`;
+        }
+
+        function copyOrderText() {
+            // Clean text without escaped slashes for clipboard
+            const cleanText = lastOrderText.replace(/\\n/g, '\n');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(cleanText).then(() => {
+                    alert('Текст заявки скопирован! Теперь вы можете отправить его в Telegram @Viloni_mi');
+                }).catch(() => {
+                    fallbackCopyText(cleanText);
+                });
+            } else {
+                fallbackCopyText(cleanText);
+            }
+        }
+
+        function fallbackCopyText(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('Текст заявки скопирован!');
+            } catch (err) {
+                alert('Не удалось скопировать автоматически. Скопируйте текст из блока выше.');
+            }
+            document.body.removeChild(textArea);
+        }
+    </script>
+<script>
+        document.querySelectorAll('.product-img-wrap img').forEach(img => {
+            img.addEventListener('error', () => { img.style.display='none'; });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="admin-addon.js"></script>
+<script src="reviews-addon.js"></script>
+</body>
+</html>
