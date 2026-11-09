@@ -152,6 +152,23 @@
             padding: 0.9rem 4%;
             box-shadow: 0 4px 20px rgba(0,0,0,0.6);
         }
+        /* Добавьте этот блок кода в тег <style> */
+.logo-area img, .brand-logo {
+    width: 60px;        /* Жестко задает ширину логотипа на ПК */
+    height: auto;       /* Сохраняет правильные пропорции */
+    object-fit: contain;
+}
+
+/* Также найдите селектор .logo-area и уменьшите gap (отступ до меню), чтобы все влезло */
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;           /* Было 12px, уменьшаем расстояние между логотипом и текстом */
+    text-decoration: none;
+    color: var(--text-main);
+    min-width: 0;
+}
+
 
         .logo-area {
             display: flex;
@@ -790,13 +807,21 @@
         .out-stock{color:#d7a09a;border:1px solid rgba(160,75,68,.4)}
         .contact-line{font-size:.82rem;color:var(--text-muted);margin:0 0 12px}
         .contact-line a{color:#c4b28d;text-decoration:none;font-weight:600}
-       @media(max-width:600px){
-    .brand-logo{width:14px;height:14px} 
-    .price-extra{font-size:.8rem}
+     @media(max-width:600px) {
+    .logo-area img, .brand-logo {
+        width: 45px;    /* Размер логотипа на экранах смартфонов */
+    }
+    .product-img-wrap {
+        height: 245px;
+    }
+    .price-extra {
+        font-size: .8rem;
+    }
 }
 
+
             *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
-        }
+ ы
 </style>
 </head>
 <body>
@@ -853,7 +878,7 @@
 <div class="feature-card">
 <div class="feature-icon"><img src="apple.png" alt="Волшебное яблоко"></div>
 <h3>Магическая упаковка</h3>
-<p>Каждый заказ упаковывается в крафтовую подарочную бумагу с сургучной печатью, готовый стать идеальным подарком.</p>
+<p>Каждый заказ упаковывается в крафтовую подарочную бумагу с печатью, готовый стать идеальным подарком.</p>
 </div>
 </div>
 <!-- Декор ночного леса: мотылёк, кот, яблоко и два черепа -->
